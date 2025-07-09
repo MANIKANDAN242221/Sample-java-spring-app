@@ -34,10 +34,15 @@ pipeline {
         stage ("Deploy to Kubernetes") {
             steps {
                 script {
+                    // Debug to make sure file exists
+                    sh "ls -l deployment.yaml"
+                    
+                    // Replace image and deploy
                     sh """
-                        sed -i 's|image: .*|image: ${DOCKER_IMAGE}|' k8s-deployment.yaml
-                        kubectl apply -f k8s-deployment.yaml
-                        kubectl get pods
+                        sed -i 's|image: .*|image: ${DOCKER_IMAGE}|' deployment.yaml
+                        kubectl apply -f deployment.yaml
+                        kubectl rollout status deployment/deployment.yaml
+                        kubectl get pods -o wide
                     """
                 }
             }
