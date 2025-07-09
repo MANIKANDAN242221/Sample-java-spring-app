@@ -44,6 +44,7 @@ pipeline {
                 }
                 withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
                     sh '''
+                        git config --unset credential.helper || true
                         git remote remove origin || true
                         git remote add origin https://${GIT_USER}:${GIT_PASS}@github.com/MANIKANDAN242221/Sample-java-spring-app.git
                         git push origin main
