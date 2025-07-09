@@ -39,7 +39,12 @@ pipeline {
                         git config user.name "ci-bot"
                         git config user.email "ci-bot@company.com"
                         git add argocd-manifest/deployment.yaml
-                        git commit -m "Update image to ${DOCKER_IMAGE}"
+                        git commit -m "Update image to ${DOCKER_IMAGE}" || echo 'No changes to commit'
+                    """
+                }
+                withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                    sh """
+                        git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/MANIKANDAN242221/Sample-java-spring-app.git
                         git push origin main
                     """
                 }
