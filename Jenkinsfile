@@ -3,45 +3,49 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "techdocker24/java:${env.BUILD_NUMBER}"
+        DOCKER_CREDENTIALS_ID = 'dockerhub-creds' // Jenkins credentials ID
+        DEPLOYMENT_NAME = 'sample-java-app' // Replace with your actual deployment name
     }
 
     stages {
-        stage ("Clone") {
+        stage("Clone") {
             steps {
                 git branch: 'main', url: 'https://github.com/MANIKANDAN242221/Sample-java-spring-app.git'
             }
         }
 
-        stage ("Build Maven") {
+        stage("Build Maven") {
             steps {
                 sh "mvn clean install"
             }
         }
 
-        stage ("Build Docker Image") {
+        stage("Build Docker Image") {
             steps {
                 sh "docker build -t ${DOCKER_IMAGE} ."
             }
         }
 
-        stage ("Push Docker Image") {
+        stage("Push Docker Image") {
             steps {
-                sh "docker login -u techdocker24 -p Manikandan@2422"
-                sh "docker push ${DOCKER_IMAGE}"
+                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh """
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push ${DOCKER_IMAGE}
+                    """
+                }
             }
         }
 
-        stage ("Deploy to Kubernetes") {
+        stage("Deploy to Kubernetes") {
             steps {
                 script {
-                    // Debug to make sure file exists
                     sh "ls -l deployment.yaml"
-                    
-                    // Replace image and deploy
+
                     sh """
                         sed -i 's|image: .*|image: ${DOCKER_IMAGE}|' deployment.yaml
                         kubectl apply -f deployment.yaml
-                        kubectl rollout status deployment/deployment.yaml
+                        kubectl rollout status deployment/${techdocker24/java}
                         kubectl get pods -o wide
                     """
                 }
@@ -51,7 +55,7 @@ pipeline {
 
     post {
         success {
-            echo '✅ Build, Push & Kubernetes deploy completed!'
+            echo '✅ Build & Kubernetes deploy completed!'
         }
         failure {
             echo '❌ Pipeline failed.'
