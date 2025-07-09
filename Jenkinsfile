@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent { label 'k8s' }
 
     environment {
         DOCKER_IMAGE = "techdocker24/java:${env.BUILD_NUMBER}"
@@ -31,24 +31,14 @@ pipeline {
             }
         }
 
-        stage ("Update deployment.yaml for ArgoCD") {
+        stage ("Deploy to Kubernetes") {
             steps {
                 script {
                     sh """
-                        sed -i 's|image: .*|image: ${DOCKER_IMAGE}|' argocd-manifest/deployment.yaml
-                        git config user.name "ci-bot"
-                        git config user.email "ci-bot@company.com"
-                        git add argocd-manifest/deployment.yaml
-                        git commit -m "Update image to ${DOCKER_IMAGE}" || echo 'No changes to commit'
+                        sed -i 's|image: .*|image: ${DOCKER_IMAGE}|' k8s-deployment.yaml
+                        kubectl apply -f k8s-deployment.yaml
+                        kubectl get pods
                     """
-                }
-                withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
-                    sh '''
-                        git config --unset credential.helper || true
-                        git remote remove origin || true
-                        git remote add origin https://${GIT_USER}:${GIT_PASS}@github.com/MANIKANDAN242221/Sample-java-spring-app.git
-                        git push origin main
-                    '''
                 }
             }
         }
@@ -56,7 +46,7 @@ pipeline {
 
     post {
         success {
-            echo '✅ Build, Push & ArgoCD update completed!'
+            echo '✅ Build, Push & Kubernetes deploy completed!'
         }
         failure {
             echo '❌ Pipeline failed.'
