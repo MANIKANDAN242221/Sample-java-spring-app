@@ -17,7 +17,6 @@ pipeline {
         stage ("docker image") {
             steps {
                 sh "docker build -t techdocker24/java ."
-                sh "docker images"
             }
         }
 
@@ -28,23 +27,20 @@ pipeline {
             }
         }
 
-        stage ("docker container") {
-            steps {
-                sh "docker rm -f java || true"
-                sh "docker run -d --name java -p 8087:8080 techdocker24/java"
-            }
-        }
-
         stage ("k8s deploy") {
             steps {
-                // Option 1: apply yaml file
                 sh "kubectl apply -f k8s-deployment.yaml"
-                
-                // Or, Option 2: simple direct run
-                // sh 'kubectl run java-pod --image=techdocker24/java --port=8080 --restart=Never'
-
-                sh "kubectl get pods"
+                sh "kubectl get pods -o wide"
             }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Build & Deployment successful!'
+        }
+        failure {
+            echo '❌ Pipeline failed.'
         }
     }
 }
