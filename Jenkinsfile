@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         IMAGE_TAG = "techdocker24/java:latest"
-        KUBECONFIG = "/var/lib/jenkins/.kube/config"
     }
 
     stages {
@@ -42,12 +41,14 @@ pipeline {
                 }
             }
         }
+    }
 
-        stage ("deploy check") {
-            steps {
-                // use sudo if needed to access kubectl as root
-                sh "sudo KUBECONFIG=$KUBECONFIG kubectl get pods"
-            }
+    post {
+        success {
+            echo "🎉 Pipeline completed SUCCESSFULLY. Docker image pushed & ArgoCD manifest updated!"
+        }
+        failure {
+            echo "💥 Pipeline FAILED. Please check above logs for errors."
         }
     }
 }
