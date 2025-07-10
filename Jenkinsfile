@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         IMAGE_TAG = "techdocker24/java:latest"
+        KUBECONFIG = "/var/lib/jenkins/.kube/config"
     }
 
     stages {
@@ -45,10 +46,7 @@ pipeline {
 
     post {
         success {
-            echo "🎉 Pipeline completed SUCCESSFULLY. Docker image pushed & ArgoCD manifest updated!"
-        }
-        failure {
-            echo "💥 Pipeline FAILED. Please check above logs for errors."
+            echo "✅ Pipeline completed successfully. Docker image pushed and manifest updated!"
         }
     }
 }
