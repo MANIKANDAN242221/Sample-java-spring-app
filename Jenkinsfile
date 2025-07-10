@@ -2,14 +2,13 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_TAG = "techdocker24/java:${BUILD_NUMBER}"
-        GIT_REPO = "https://github.com/MANIKANDAN242221/Sample-java-spring-app.git"
+        IMAGE_TAG = "techdocker24/java:latest"
     }
 
     stages {
         stage ("clone") {
             steps {
-                git branch: 'main', url: "$GIT_REPO"
+                git branch: 'main', url: 'https://github.com/MANIKANDAN242221/Sample-java-spring-app.git'
             }
         }
 
@@ -29,14 +28,23 @@ pipeline {
 
         stage ("update manifest & push") {
             steps {
-                // replace the image line in deployment.yaml with our new tag
-                sh "sed -i 's|image: techdocker24/java.*|image: $IMAGE_TAG|' deployment.yaml"
+                withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                    sh """
+                        git config user.email 'jenkins@ci.com'
+                        git config user.name 'jenkins'
+                        sed -i 's|image:.*|image: $IMAGE_TAG|' deployment.yaml
+                        git add deployment.yaml
+                        git commit -m 'Update image to $IMAGE_TAG'
+                        git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/MANIKANDAN242221/Sample-java-spring-app.git
+                        git push origin main
+                    """
+                }
+            }
+        }
 
-                // commit & push changes back to git so ArgoCD can deploy
-                sh "git config user.email 'jenkins@ci.com'"
-                sh "git config user.name 'jenkins'"
-                sh "git commit -am 'Update image to $IMAGE_TAG'"
-                sh "git push origin main"
+        stage ("deploy check") {
+            steps {
+                sh "export KUBECONFIG=/home/ubuntu/.kube/config && kubectl get pods"
             }
         }
     }
