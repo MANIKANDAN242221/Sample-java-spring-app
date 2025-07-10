@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_TAG = "techdocker24/java:latest"
+        IMAGE_TAG = "techdocker24/java:${BUILD_NUMBER}"
         KUBECONFIG = "/var/lib/jenkins/.kube/config"
     }
 
@@ -33,13 +33,9 @@ pipeline {
                     sh """
                         git config user.email 'jenkins@ci.com'
                         git config user.name 'jenkins'
-
-                        # Update the image in argocd manifest
                         sed -i 's|image:.*|image: $IMAGE_TAG|' argocd-manifest/deployment.yaml || true
-
                         git add argocd-manifest/deployment.yaml || true
 
-                        # Only commit & push if changed
                         if git diff --cached --quiet; then
                             echo "✅ No changes to commit in ArgoCD manifest."
                         else
