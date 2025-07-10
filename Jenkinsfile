@@ -27,17 +27,27 @@ pipeline {
             }
         }
 
-        stage ("update manifest & push") {
+        stage ("update ArgoCD manifest & push") {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'GitHub-rep', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
                     sh """
                         git config user.email 'jenkins@ci.com'
                         git config user.name 'jenkins'
-                        sed -i 's|image:.*|image: $IMAGE_TAG|' deployment.yaml
-                        git add deployment.yaml
-                        git commit -m 'Update image to $IMAGE_TAG'
-                        git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/MANIKANDAN242221/Sample-java-spring-app.git
-                        git push origin main
+
+                        # Update the image in argocd manifest
+                        sed -i 's|image:.*|image: $IMAGE_TAG|' argocd-manifest/deployment.yaml || true
+
+                        git add argocd-manifest/deployment.yaml || true
+
+                        # Only commit & push if changed
+                        if git diff --cached --quiet; then
+                            echo "✅ No changes to commit in ArgoCD manifest."
+                        else
+                            git commit -m 'Update ArgoCD manifest to $IMAGE_TAG'
+                            git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/MANIKANDAN242221/Sample-java-spring-app.git
+                            git push origin main
+                            echo "🚀 Updated ArgoCD manifest pushed to repo."
+                        fi
                     """
                 }
             }
@@ -46,10 +56,13 @@ pipeline {
 
     post {
         success {
-            echo "✅ Pipeline completed successfully. Docker image pushed and manifest updated!"
+            echo "✅ Pipeline completed successfully!"
         }
         failure {
             echo "❌ Pipeline failed. Please check the logs."
+        }
+        always {
+            echo "ℹ️ Pipeline finished."
         }
     }
 }
