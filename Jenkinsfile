@@ -45,7 +45,7 @@ pipeline {
                     sh """
                         sed -i 's|image: .*|image: ${DOCKER_IMAGE}|' deployment.yaml
                         kubectl apply -f deployment.yaml
-                        kubectl rollout status deployment/${techdocker24/java}
+                        kubectl rollout status deployment/${simple-java-app}
                         kubectl get pods -o wide
                     """
                 }
