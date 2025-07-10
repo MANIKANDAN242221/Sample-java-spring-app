@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         IMAGE_TAG = "techdocker24/java:latest"
+        KUBECONFIG = "/var/lib/jenkins/.kube/config"
     }
 
     stages {
@@ -28,7 +29,7 @@ pipeline {
 
         stage ("update manifest & push") {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'GitHub-rep', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
                     sh """
                         git config user.email 'jenkins@ci.com'
                         git config user.name 'jenkins'
@@ -44,7 +45,8 @@ pipeline {
 
         stage ("deploy check") {
             steps {
-                sh "export KUBECONFIG=/home/ubuntu/.kube/config && kubectl get pods"
+                // use sudo if needed to access kubectl as root
+                sh "sudo KUBECONFIG=$KUBECONFIG kubectl get pods"
             }
         }
     }
