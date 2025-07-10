@@ -1,10 +1,15 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_TAG = "techdocker24/java:${BUILD_NUMBER}"
+        GIT_REPO = "https://github.com/MANIKANDAN242221/Sample-java-spring-app.git"
+    }
+
     stages {
         stage ("clone") {
             steps {
-                git branch: 'main', url: 'https://github.com/MANIKANDAN242221/Sample-java-spring-app.git'
+                git branch: 'main', url: "$GIT_REPO"
             }
         }
 
@@ -14,31 +19,24 @@ pipeline {
             }
         }
 
-        stage ("docker image") {
+        stage ("docker build & push") {
             steps {
-                sh "docker build -t techdocker24/java ."
-                sh "docker images"
-            }
-        }
-
-        stage("docker hub") {
-            steps {
+                sh "docker build -t $IMAGE_TAG ."
                 sh "docker login -u techdocker24 -p 'Manikandan@2422'"
-                sh "docker push techdocker24/java"
+                sh "docker push $IMAGE_TAG"
             }
         }
 
-        stage ("docker container") {
+        stage ("update manifest & push") {
             steps {
-                sh "docker rm -f java || true"
-                sh "docker run -d --name java -p 8087:8080 techdocker24/java"
-            }
-        }
+                // replace the image line in deployment.yaml with our new tag
+                sh "sed -i 's|image: techdocker24/java.*|image: $IMAGE_TAG|' deployment.yaml"
 
-        stage("k8s deploy") {
-            steps {
-                sh "export KUBECONFIG=/home/ubuntu/.kube/config && kubectl apply -f deployment.yaml"
-                sh "export KUBECONFIG=/home/ubuntu/.kube/config && kubectl rollout status deployment my-java-app"
+                // commit & push changes back to git so ArgoCD can deploy
+                sh "git config user.email 'jenkins@ci.com'"
+                sh "git config user.name 'jenkins'"
+                sh "git commit -am 'Update image to $IMAGE_TAG'"
+                sh "git push origin main"
             }
         }
     }
