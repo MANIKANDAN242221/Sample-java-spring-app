@@ -1,64 +1,39 @@
 pipeline {
-    agent { label 'k8s' }
-
-    environment {
-        DOCKER_IMAGE = "techdocker24/java:${env.BUILD_NUMBER}"
-        DOCKER_CREDENTIALS_ID = 'dockerhub-creds' // Jenkins credentials ID
-        DEPLOYMENT_NAME = 'sample-java-app' // Replace with your actual deployment name
-    }
-
+    agent any
     stages {
-        stage("Clone") {
+        stage ("clone") {
             steps {
                 git branch: 'main', url: 'https://github.com/MANIKANDAN242221/Sample-java-spring-app.git'
             }
         }
-
-        stage("Build Maven") {
+        stage ("build") {
             steps {
                 sh "mvn clean install"
             }
         }
-
-        stage("Build Docker Image") {
+        stage ("docker image") {
             steps {
-                sh "docker build -t ${DOCKER_IMAGE} ."
+                sh "docker build -t techdocker24/java ."
+                sh "docker images"
             }
         }
-
-        stage("Push Docker Image") {
+        stage("docker hub") {
             steps {
-                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh """
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker push ${DOCKER_IMAGE}
-                    """
-                }
+                sh "docker login -u techdocker24 -p Manikandan@2422"
+                sh "docker push techdocker24/java"
             }
         }
-
-        stage("Deploy to Kubernetes") {
+        stage ("docker container") {
             steps {
-                script {
-                    sh "ls -l deployment.yaml"
-
-                    sh """
-                        sed -i 's|image: .*|image: ${DOCKER_IMAGE}|' deployment.yaml
-                        kubectl apply -f deployment.yaml
-                        kubectl rollout status deployment/${simple-java-app}
-                        kubectl get pods -o wide
-                    """
-                }
+                sh "docker rm -f java || true"
+                sh "docker run -d --name java -p 8087:8080 techdocker24/java"
             }
         }
-    }
-
-    post {
-        success {
-            echo '✅ Build & Kubernetes deploy completed!'
-        }
-        failure {
-            echo '❌ Pipeline failed.'
+        stage("k8s deploy") {
+            steps {
+                sh "kubectl apply -f deployment.yaml"
+                sh "kubectl rollout status deployment my-java-app"
+            }
         }
     }
 }
