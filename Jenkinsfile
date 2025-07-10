@@ -37,12 +37,12 @@ pipeline {
                         # Update the image in argocd manifest
                         sed -i 's|image:.*|image: $IMAGE_TAG|' argocd-manifest/deployment.yaml || true
 
-                        # Add rollout timestamp label to force ArgoCD to redeploy
-                        sed -i "/image:/a\ \ \ \ \ \ \ \ rollout-timestamp: $(date +%s)" argocd-manifest/deployment.yaml || true
+                        # Add a rollout timestamp annotation to force ArgoCD sync
+                        sed -i '/image:/a \        rollout-timestamp: '$(date +%s)'' argocd-manifest/deployment.yaml || true
 
                         git add argocd-manifest/deployment.yaml || true
 
-                        # Only commit & push if changed
+                        # Commit only if there are staged changes
                         if git diff --cached --quiet; then
                             echo "✅ No changes to commit in ArgoCD manifest."
                         else
