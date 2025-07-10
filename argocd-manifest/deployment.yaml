@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: java-app
-        image: techdocker24/java:61
+        image: techdocker24/java:62
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
