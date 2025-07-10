@@ -18,8 +18,9 @@ spec:
         ports:
         - containerPort: 8080
         env:
-        - name: mongo_db_hostname
-          value: "mongodb"   # 🔥 replace with your MongoDB service name
+        - name: SPRING_DATA_MONGODB_HOST
+          value: "mongodb"
+
 
 ---
 
