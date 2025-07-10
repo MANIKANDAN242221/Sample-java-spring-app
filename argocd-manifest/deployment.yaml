@@ -19,7 +19,7 @@ spec:
         ports:
         - containerPort: 8080
         env:
-        - name: mongo_db_hostname
+        - name: SPRING_DATA_MONGODB_HOST
           value: "mongodb"  # <-- 🔥 update to your mongo service name
         livenessProbe:
           httpGet:
