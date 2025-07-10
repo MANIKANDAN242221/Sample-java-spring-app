@@ -42,3 +42,14 @@ pipeline {
                 }
             }
         }
+    }
+
+    post {
+        success {
+            echo "✅ Pipeline completed successfully. Docker image pushed and manifest updated!"
+        }
+        failure {
+            echo "❌ Pipeline failed. Please check the logs."
+        }
+    }
+}
