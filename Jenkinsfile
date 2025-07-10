@@ -37,16 +37,13 @@ pipeline {
                         # Update the image in argocd manifest
                         sed -i 's|image:.*|image: $IMAGE_TAG|' argocd-manifest/deployment.yaml || true
 
-                        # Add a rollout timestamp annotation to force ArgoCD sync
-                        sed -i '/image:/a \        rollout-timestamp: '$(date +%s)'' argocd-manifest/deployment.yaml || true
-
                         git add argocd-manifest/deployment.yaml || true
 
-                        # Commit only if there are staged changes
+                        # Only commit & push if changed
                         if git diff --cached --quiet; then
                             echo "✅ No changes to commit in ArgoCD manifest."
                         else
-                            git commit -m 'Update ArgoCD manifest to $IMAGE_TAG with rollout timestamp'
+                            git commit -m 'Update ArgoCD manifest to $IMAGE_TAG'
                             git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/MANIKANDAN242221/Sample-java-spring-app.git
                             git push origin main
                             echo "🚀 Updated ArgoCD manifest pushed to repo."
