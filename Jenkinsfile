@@ -14,27 +14,32 @@ pipeline {
             }
         }
 
-        stage ("Skip build on [skip ci] or Jenkins commit") {
+        stage ("Check for [skip ci] or Jenkins commit") {
             steps {
                 script {
-                    def skipCI = sh(
-                        script: "git log -1 --pretty=%B | grep '\\[skip ci\\]' || true",
+                    def commitMessage = sh(
+                        script: "git log -1 --pretty=%B",
                         returnStdout: true
                     ).trim()
 
                     def lastAuthor = sh(
-                        script: "git log -1 --pretty=format:'%an'",
+                        script: "git log -1 --pretty=%an",
                         returnStdout: true
                     ).trim()
 
-                    if (skipCI) {
+                    echo "Last commit message: ${commitMessage}"
+                    echo "Last author: ${lastAuthor}"
+
+                    if (commitMessage.contains("[skip ci]")) {
                         echo "🛑 Found [skip ci] in commit message. Skipping pipeline."
-                        error("Skipping build due to [skip ci]")
+                        currentBuild.result = 'SUCCESS'
+                        return
                     }
 
                     if (lastAuthor.toLowerCase().contains("jenkins")) {
-                        echo "🛑 Last commit was by Jenkins (${lastAuthor}). Skipping pipeline to prevent loop."
-                        error("Skipping build because last commit by Jenkins")
+                        echo "🛑 Last commit was by Jenkins (${lastAuthor}). Skipping to avoid loop."
+                        currentBuild.result = 'SUCCESS'
+                        return
                     }
                 }
             }
@@ -63,9 +68,9 @@ pipeline {
                         git config user.email 'jenkins@ci.com'
                         git config user.name 'jenkins'
 
-                        sed -i 's|image:.*|image: $IMAGE_TAG|' argocd-manifest/deployment.yaml || true
-                        git add argocd-manifest/deployment.yaml || true
+                        sed -i 's|image:.*|image: $IMAGE_TAG|' argocd-manifest/deployment.yaml
 
+                        git add argocd-manifest/deployment.yaml
                         if git diff --cached --quiet; then
                             echo "✅ No changes to commit."
                         else
