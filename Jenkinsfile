@@ -8,21 +8,6 @@ pipeline {
     }
 
     stages {
-        stage("Precheck via GitHub API") {
-            steps {
-                script {
-                    def commitMsg = sh(script: "curl -s https://api.github.com/repos/MANIKANDAN242221/Sample-java-spring-app/commits/main | jq -r '.commit.message'", returnStdout: true).trim()
-                    echo "🔍 Last commit message: ${commitMsg}"
-
-                    if (commitMsg.contains("[skip ci]")) {
-                        echo "🛑 Found [skip ci] in last commit. Exiting pipeline."
-                        currentBuild.result = 'SUCCESS'
-                        return
-                    }
-                }
-            }
-        }
-
         stage ("Clone") {
             steps {
                 git branch: 'main', url: 'https://github.com/MANIKANDAN242221/Sample-java-spring-app.git'
@@ -57,7 +42,7 @@ pipeline {
                         if git diff --cached --quiet; then
                             echo "✅ No changes to commit."
                         else
-                            git commit -m 'Update ArgoCD manifest to $IMAGE_TAG [skip ci]'
+                            git commit -m 'Update ArgoCD manifest to $IMAGE_TAG'
                             git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/MANIKANDAN242221/Sample-java-spring-app.git
                             git push origin main
                             echo "🚀 Updated ArgoCD manifest pushed."
