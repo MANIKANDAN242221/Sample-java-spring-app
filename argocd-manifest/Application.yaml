@@ -4,17 +4,17 @@ metadata:
   name: java-app
   namespace: argocd
 spec:
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: default
+  project: default
   source:
     repoURL: https://github.com/MANIKANDAN242221/Sample-java-spring-app.git
     targetRevision: main
-    path: argocd-manifest  # folder where your deployment.yaml is
-  project: default
+    path: argocd-manifest
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
   syncPolicy:
     automated:
-      prune: true      # delete old resources not in git
-      selfHeal: true   # fix drift automatically
+      prune: true
+      selfHeal: true
     syncOptions:
-    - CreateNamespace=true
+      - CreateNamespace=true
