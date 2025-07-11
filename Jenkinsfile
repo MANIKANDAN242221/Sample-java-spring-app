@@ -16,9 +16,8 @@ pipeline {
                         returnStdout: true
                     ).trim()
                     if (skipCI) {
-                        echo "🛑 Found [skip ci] in commit message. Skipping pipeline."
-                        currentBuild.result = 'SUCCESS'
-                        error("Skipping build due to [skip ci]")
+                        echo "🛑 Found [skip ci] in commit message. Skipping pipeline cleanly."
+                        return
                     }
                 }
             }
