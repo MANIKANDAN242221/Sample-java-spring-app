@@ -14,40 +14,25 @@ pipeline {
             }
         }
 
-        stage ("Check if build needed or skip") {
+        stage ("Skip build on [skip ci] or Jenkins commit") {
             steps {
                 script {
-                    def skipCI = sh(
-                        script: "git log -1 --pretty=%B | grep '\\[skip ci\\]' || true",
-                        returnStdout: true
-                    ).trim()
+                    def commitMsg = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
+                    def lastAuthor = sh(script: "git log -1 --pretty=format:'%an'", returnStdout: true).trim()
 
-                    def lastAuthor = sh(
-                        script: "git log -1 --pretty=format:'%an'",
-                        returnStdout: true
-                    ).trim()
-
-                    if (skipCI) {
-                        echo "🛑 Found [skip ci] in last commit. Skipping build."
+                    if (commitMsg.contains("[skip ci]")) {
+                        echo "🛑 Found [skip ci] in commit message. Skipping pipeline."
                         currentBuild.result = 'SUCCESS'
                         return
                     }
 
                     if (lastAuthor.toLowerCase().contains("jenkins")) {
-                        echo "🛑 Last commit by Jenkins. Skipping build."
+                        echo "🛑 Last commit was by Jenkins (${lastAuthor}). Skipping pipeline to prevent loop."
                         currentBuild.result = 'SUCCESS'
                         return
                     }
 
-                    def alreadyUpdated = sh(
-                        script: "grep '${IMAGE_TAG}' argocd-manifest/deployment.yaml || true",
-                        returnStdout: true
-                    ).trim()
-                    if (alreadyUpdated) {
-                        echo "✅ Image already up-to-date in manifest. Skipping build."
-                        currentBuild.result = 'SUCCESS'
-                        return
-                    }
+                    echo "✅ Passed skip checks. Proceeding with build..."
                 }
             }
         }
@@ -84,7 +69,7 @@ pipeline {
                             git commit -m 'Update ArgoCD manifest to $IMAGE_TAG [skip ci]'
                             git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/MANIKANDAN242221/Sample-java-spring-app.git
                             git push origin main
-                            echo "🚀 Updated ArgoCD manifest pushed."
+                            echo "🚀 Updated ArgoCD manifest pushed with [skip ci]"
                         fi
                     """
                 }
