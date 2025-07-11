@@ -12,6 +12,8 @@ spec:
       labels:
         app: java-app
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: k8s-slave
       containers:
       - name: java-app
         image: techdocker24/java:64
@@ -48,9 +50,11 @@ kind: Service
 metadata:
   name: java-app
 spec:
+  type: NodePort
   selector:
     app: java-app
   ports:
     - protocol: TCP
       port: 80
       targetPort: 8080
+      nodePort: 30080
