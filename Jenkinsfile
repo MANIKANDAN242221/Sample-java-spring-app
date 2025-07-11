@@ -14,30 +14,37 @@ pipeline {
             }
         }
 
-        stage ("Check for [skip ci] or Jenkins commit") {
+        stage ("Check if build needed or skip") {
             steps {
                 script {
-                    def commitMessage = sh(
-                        script: "git log -1 --pretty=%B",
+                    def skipCI = sh(
+                        script: "git log -1 --pretty=%B | grep '\\[skip ci\\]' || true",
                         returnStdout: true
                     ).trim()
 
                     def lastAuthor = sh(
-                        script: "git log -1 --pretty=%an",
+                        script: "git log -1 --pretty=format:'%an'",
                         returnStdout: true
                     ).trim()
 
-                    echo "Last commit message: ${commitMessage}"
-                    echo "Last author: ${lastAuthor}"
-
-                    if (commitMessage.contains("[skip ci]")) {
-                        echo "🛑 Found [skip ci] in commit message. Skipping pipeline."
+                    if (skipCI) {
+                        echo "🛑 Found [skip ci] in last commit. Skipping build."
                         currentBuild.result = 'SUCCESS'
                         return
                     }
 
                     if (lastAuthor.toLowerCase().contains("jenkins")) {
-                        echo "🛑 Last commit was by Jenkins (${lastAuthor}). Skipping to avoid loop."
+                        echo "🛑 Last commit by Jenkins. Skipping build."
+                        currentBuild.result = 'SUCCESS'
+                        return
+                    }
+
+                    def alreadyUpdated = sh(
+                        script: "grep '${IMAGE_TAG}' argocd-manifest/deployment.yaml || true",
+                        returnStdout: true
+                    ).trim()
+                    if (alreadyUpdated) {
+                        echo "✅ Image already up-to-date in manifest. Skipping build."
                         currentBuild.result = 'SUCCESS'
                         return
                     }
@@ -68,9 +75,9 @@ pipeline {
                         git config user.email 'jenkins@ci.com'
                         git config user.name 'jenkins'
 
-                        sed -i 's|image:.*|image: $IMAGE_TAG|' argocd-manifest/deployment.yaml
+                        sed -i 's|image:.*|image: $IMAGE_TAG|' argocd-manifest/deployment.yaml || true
+                        git add argocd-manifest/deployment.yaml || true
 
-                        git add argocd-manifest/deployment.yaml
                         if git diff --cached --quiet; then
                             echo "✅ No changes to commit."
                         else
