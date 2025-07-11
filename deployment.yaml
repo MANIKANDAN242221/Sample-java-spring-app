@@ -14,12 +14,13 @@ spec:
     spec:
       containers:
       - name: java-app
-        image: techdocker24/java:latest # Jenkins will replace this with dynamic build tag
+        image: techdocker24/java:64
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
         env:
         - name: SPRING_DATA_MONGODB_HOST
-          value: "mongodb" # your mongo service name
+          value: "mongodb"
         livenessProbe:
           httpGet:
             path: /
@@ -35,10 +36,12 @@ spec:
         resources:
           requests:
             cpu: "100m"
-            memory: "128Mi"
+            memory: "256Mi"
           limits:
             cpu: "500m"
-            memory: "256Mi"
+            memory: "512Mi"
+        command: ["java"]
+        args: ["-Xmx200m", "-jar", "spring-boot-mongo.jar"]
 ---
 apiVersion: v1
 kind: Service
