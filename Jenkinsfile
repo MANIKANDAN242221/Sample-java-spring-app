@@ -8,6 +8,22 @@ pipeline {
     }
 
     stages {
+        stage ("Skip build on [skip ci] commit") {
+            steps {
+                script {
+                    def skipCI = sh(
+                        script: "git log -1 --pretty=%B | grep '\\[skip ci\\]' || true",
+                        returnStdout: true
+                    ).trim()
+                    if (skipCI) {
+                        echo "🛑 Found [skip ci] in commit message. Skipping pipeline."
+                        currentBuild.result = 'SUCCESS'
+                        error("Skipping build due to [skip ci]")
+                    }
+                }
+            }
+        }
+
         stage ("Clone") {
             steps {
                 git branch: 'main', url: 'https://github.com/MANIKANDAN242221/Sample-java-spring-app.git'
@@ -42,7 +58,7 @@ pipeline {
                         if git diff --cached --quiet; then
                             echo "✅ No changes to commit."
                         else
-                            git commit -m 'Update ArgoCD manifest to $IMAGE_TAG'
+                            git commit -m 'Update ArgoCD manifest to $IMAGE_TAG [skip ci]'
                             git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/MANIKANDAN242221/Sample-java-spring-app.git
                             git push origin main
                             echo "🚀 Updated ArgoCD manifest pushed."
