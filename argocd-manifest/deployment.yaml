@@ -16,7 +16,7 @@ spec:
         kubernetes.io/hostname: k8s-slave
       containers:
       - name: java-app
-        image: techdocker24/java:126
+        image: techdocker24/java:127
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
