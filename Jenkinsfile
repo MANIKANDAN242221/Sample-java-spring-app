@@ -8,39 +8,22 @@ pipeline {
     }
 
     stages {
-        stage ("Check last commit author/message to skip loop") {
+        stage("Precheck via GitHub API") {
             steps {
                 script {
-                    // Do a shallow clone in a tmp folder just to check last commit
-                    sh """
-                        rm -rf tmp-check || true
-                        git clone --depth 1 -b main https://github.com/MANIKANDAN242221/Sample-java-spring-app.git tmp-check
-                    """
-
-                    def commitMsg = sh(script: "git -C tmp-check log -1 --pretty=%B", returnStdout: true).trim()
-                    def lastAuthor = sh(script: "git -C tmp-check log -1 --pretty=format:'%an'", returnStdout: true).trim()
-
-                    echo "🔍 Last commit author: ${lastAuthor}"
+                    def commitMsg = sh(script: "curl -s https://api.github.com/repos/MANIKANDAN242221/Sample-java-spring-app/commits/main | jq -r '.commit.message'", returnStdout: true).trim()
                     echo "🔍 Last commit message: ${commitMsg}"
 
                     if (commitMsg.contains("[skip ci]")) {
-                        echo "🛑 Found [skip ci] in last commit message. Skipping build."
+                        echo "🛑 Found [skip ci] in last commit. Exiting pipeline."
                         currentBuild.result = 'SUCCESS'
                         return
                     }
-
-                    if (lastAuthor.toLowerCase().contains("jenkins")) {
-                        echo "🛑 Last commit was by Jenkins (${lastAuthor}). Skipping to avoid loop."
-                        currentBuild.result = 'SUCCESS'
-                        return
-                    }
-
-                    echo "✅ Passed skip checks, proceeding."
                 }
             }
         }
 
-        stage ("Clone repository") {
+        stage ("Clone") {
             steps {
                 git branch: 'main', url: 'https://github.com/MANIKANDAN242221/Sample-java-spring-app.git'
             }
@@ -68,9 +51,8 @@ pipeline {
                     sh """
                         git config user.email 'jenkins@ci.com'
                         git config user.name 'jenkins'
-                        
-                        sed -i 's|image:.*|image: $IMAGE_TAG|' argocd-manifest/deployment.yaml
-                        git add argocd-manifest/deployment.yaml
+                        sed -i 's|image:.*|image: $IMAGE_TAG|' argocd-manifest/deployment.yaml || true
+                        git add argocd-manifest/deployment.yaml || true
 
                         if git diff --cached --quiet; then
                             echo "✅ No changes to commit."
@@ -78,7 +60,7 @@ pipeline {
                             git commit -m 'Update ArgoCD manifest to $IMAGE_TAG [skip ci]'
                             git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/MANIKANDAN242221/Sample-java-spring-app.git
                             git push origin main
-                            echo "🚀 Manifest pushed with [skip ci]."
+                            echo "🚀 Updated ArgoCD manifest pushed."
                         fi
                     """
                 }
@@ -91,10 +73,10 @@ pipeline {
             echo "✅ Pipeline completed successfully!"
         }
         failure {
-            echo "❌ Pipeline failed. Please check logs."
+            echo "❌ Pipeline failed. Please check the logs."
         }
         always {
-            echo "ℹ️ Pipeline done."
+            echo "ℹ️ Pipeline finished."
         }
     }
 }
