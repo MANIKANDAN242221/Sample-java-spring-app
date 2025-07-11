@@ -8,6 +8,12 @@ pipeline {
     }
 
     stages {
+        stage ("Clone repository") {
+            steps {
+                git branch: 'main', url: 'https://github.com/MANIKANDAN242221/Sample-java-spring-app.git'
+            }
+        }
+
         stage ("Skip build on [skip ci] or Jenkins commit") {
             steps {
                 script {
@@ -21,18 +27,16 @@ pipeline {
                         returnStdout: true
                     ).trim()
 
-                    if (skipCI || lastAuthor.toLowerCase().contains("jenkins")) {
-                        echo "🛑 Skipping build: found [skip ci] in commit or last commit by Jenkins (${lastAuthor})."
-                        currentBuild.result = 'SUCCESS'
-                        return
+                    if (skipCI) {
+                        echo "🛑 Found [skip ci] in commit message. Skipping pipeline."
+                        error("Skipping build due to [skip ci]")
+                    }
+
+                    if (lastAuthor.toLowerCase().contains("jenkins")) {
+                        echo "🛑 Last commit was by Jenkins (${lastAuthor}). Skipping pipeline to prevent loop."
+                        error("Skipping build because last commit by Jenkins")
                     }
                 }
-            }
-        }
-
-        stage ("Clone") {
-            steps {
-                git branch: 'main', url: 'https://github.com/MANIKANDAN242221/Sample-java-spring-app.git'
             }
         }
 
@@ -58,6 +62,7 @@ pipeline {
                     sh """
                         git config user.email 'jenkins@ci.com'
                         git config user.name 'jenkins'
+
                         sed -i 's|image:.*|image: $IMAGE_TAG|' argocd-manifest/deployment.yaml || true
                         git add argocd-manifest/deployment.yaml || true
 
