@@ -8,15 +8,22 @@ pipeline {
     }
 
     stages {
-        stage ("Skip build on [skip ci] commit") {
+        stage ("Skip build on [skip ci] or Jenkins commit") {
             steps {
                 script {
                     def skipCI = sh(
                         script: "git log -1 --pretty=%B | grep '\\[skip ci\\]' || true",
                         returnStdout: true
                     ).trim()
-                    if (skipCI) {
-                        echo "🛑 Found [skip ci] in commit message. Skipping pipeline cleanly."
+
+                    def lastAuthor = sh(
+                        script: "git log -1 --pretty=format:'%an'",
+                        returnStdout: true
+                    ).trim()
+
+                    if (skipCI || lastAuthor.toLowerCase().contains("jenkins")) {
+                        echo "🛑 Skipping build: found [skip ci] in commit or last commit by Jenkins (${lastAuthor})."
+                        currentBuild.result = 'SUCCESS'
                         return
                     }
                 }
