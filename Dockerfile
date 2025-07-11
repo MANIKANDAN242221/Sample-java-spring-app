@@ -1,13 +1,18 @@
+# Use lightweight JDK image
 FROM openjdk:8-alpine
 
-# Required for starting application
-RUN apk update && apk add /bin/sh
+# Install bash (optional for troubleshooting)
+RUN apk update && apk add --no-cache bash
 
-RUN mkdir -p /opt/app
-ENV PROJECT_HOME /opt/app
+# Create app directory
+WORKDIR /opt/app
 
-COPY target/spring-boot-mongo-1.0.jar $PROJECT_HOME/spring-boot-mongo.jar
+# Copy built jar
+COPY target/spring-boot-mongo-1.0.jar spring-boot-mongo.jar
 
-WORKDIR $PROJECT_HOME
+# Expose port
 EXPOSE 8080
-CMD ["java" ,"-jar","./spring-boot-mongo.jar"]
+
+# Run app
+ENTRYPOINT ["java","-jar","spring-boot-mongo.jar"]
+
