@@ -3,17 +3,18 @@ pipeline {
 
     environment {
         IMAGE_TAG = "techdocker24/java:${BUILD_NUMBER}"
-        KUBECONFIG = "/var/lib/jenkins/.kube/config"
+        DOCKER_USERNAME = "techdocker24"
+        DOCKER_PASSWORD = "Manikandan@2422"
     }
 
     stages {
-        stage ("Clone repository") {
+        stage ("Clone") {
             steps {
                 git branch: 'main', url: 'https://github.com/MANIKANDAN242221/Sample-java-spring-app.git'
             }
         }
 
-        stage ("Build Maven project") {
+        stage ("Build Maven") {
             steps {
                 sh "mvn clean package -DskipTests"
             }
@@ -23,7 +24,7 @@ pipeline {
             steps {
                 sh """
                     docker build -t $IMAGE_TAG .
-                    echo '${DOCKER_PASSWORD}' | docker login -u '${DOCKER_USERNAME}' --password-stdin
+                    echo '$DOCKER_PASSWORD' | docker login -u '$DOCKER_USERNAME' --password-stdin
                     docker push $IMAGE_TAG
                 """
             }
@@ -57,7 +58,7 @@ pipeline {
             echo "✅ Pipeline completed successfully!"
         }
         failure {
-            echo "❌ Pipeline failed. Check logs."
+            echo "❌ Pipeline failed. Please check the logs."
         }
         always {
             echo "ℹ️ Pipeline finished."
